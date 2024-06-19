@@ -4,12 +4,15 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.location.LocationManager
 import android.os.Bundle
+import android.view.PointerIcon
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.gpstest.databinding.ActivityMapsBinding
@@ -17,9 +20,12 @@ import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.infowindow.BasicInfoWindow
+import org.osmdroid.views.overlay.infowindow.InfoWindow
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMapsBinding
@@ -30,42 +36,65 @@ class MainActivity : AppCompatActivity() {
     private lateinit var markerDescriptionTextView: TextView
 
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMapsBinding.inflate(layoutInflater)
-
         setContentView(R.layout.activity_maps)
+
         settingsOsm()
+        initOsm()
         binding = ActivityMapsBinding.inflate(layoutInflater)
+        setOnClick()
+
 
         mapView = findViewById(R.id.mapView)
         mapView?.setTileSource(TileSourceFactory.MAPNIK)
         mapView?.setMultiTouchControls(true)
 
+        settingsOsm()
+        initOsm()
+
+        mapController = mapView?.controller as MapController
+
 
         mapController?.setZoom(15.0)
-        mapController?.setCenter(GeoPoint(55.751244, 37.618423))
-        //map.mapCenter(GeoPoint(55.751244, 37.618423), 13.0)
+        mapController?.animateTo(GeoPoint(55.751244, 37.618423))
 
-        addMarker(55.751244, 37.618423, "Marker 1")
-        addMarker(55.749, 37.615, "Marker 2")
-        addMarker(55.753, 37.620, "Marker 3")
+
+        addMarker(55.751244, 37.618423, "Илья")
+        addMarker(55.749, 37.615, "Рома")
+        addMarker(55.753, 37.620, "Вася")
+        setOnClick()
+        clickOnMarker()
+        zoomOut()
+        zoomIn()
+
+
+
 
         val centerOnLocationButton = findViewById<ImageButton>(R.id.centerOnLocationButton)
         centerOnLocationButton.setOnClickListener {
-            centerOnCurrentLocation()
+            centerMarker()
         }
+
     }
+
+
+
 
     private fun addMarker(latitude: Double, longitude: Double, title: String) {
         val marker = org.osmdroid.views.overlay.Marker(mapView)
         marker.position = GeoPoint(latitude, longitude)
+        marker.icon= ContextCompat.getDrawable(this, R.drawable.ic_mylocation_55dp4)
         marker.title = title
         marker.setOnMarkerClickListener { _, _ ->
             showBottomSheet(title)
             true
         }
         mapView?.overlays?.add(marker)
+        mapView?.invalidate()
     }
 
     @SuppressLint("MissingPermission")
@@ -79,6 +108,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun showBottomSheet(title: String) {
 
+        Toast.makeText(this, "$title\n GPS", Toast.LENGTH_SHORT).show()
+
+
     }
 
     private fun settingsOsm() {
@@ -87,6 +119,16 @@ class MainActivity : AppCompatActivity() {
                 .getSharedPreferences("osm_pref", Context.MODE_PRIVATE)
         )
         Configuration.getInstance().userAgentValue = BuildConfig.LIBRARY_PACKAGE_NAME
+    }
+
+    private fun initOsm() = with(binding){
+        mapController?.setZoom(20.0)
+        mapController?.setCenter(GeoPoint(55.751244, 37.618423))
+        mapController?.animateTo(GeoPoint(55.751244, 37.618423))
+        val mLocProvider = GpsMyLocationProvider(this@MainActivity)
+
+
+
     }
 
     private fun zoomIn() {
@@ -121,4 +163,23 @@ fun clickOnMarker() {
         }
     }
 }
+
+    private fun setOnClick() = with(binding){
+        val listener = onClicks()
+        centerOnLocationButton.setOnClickListener(listener)
+    }
+
+    private fun onClicks(): View.OnClickListener{
+        return View.OnClickListener {
+            when(it.id){
+                R.id.centerOnLocationButton -> centerMarker()
+            }
+        }
+    }
+
+    private fun centerMarker(){
+        binding.mapView.controller.animateTo(GeoPoint(55.751244, 37.618423), 15.0, 1)
+
+
+    }
 }
